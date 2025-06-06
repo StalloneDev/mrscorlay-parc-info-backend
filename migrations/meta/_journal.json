@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1749120150106,
+      "tag": "0000_superb_major_mapleleaf",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1749121205499,
+      "tag": "0001_eminent_wallop",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1749123187581,
+      "tag": "0002_fine_ricochet",
+      "breakpoints": true
+    }
+  ]
+}
