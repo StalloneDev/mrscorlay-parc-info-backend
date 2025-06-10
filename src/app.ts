@@ -25,7 +25,8 @@ const allowedOrigins = isProduction
   ? [
       "https://mrs-parc-info.netlify.app",
       "https://mrscorlay-parcinfo.vercel.app",
-      "https://mrscorlay-parc-info-frontend.vercel.app"
+      "https://mrscorlay-parc-info-frontend.vercel.app",
+      "https://mrscorlay-parc-info.vercel.app"
     ]
   : ["http://localhost:5173", "http://localhost:3000"];
 
@@ -34,6 +35,7 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.log('CORS blocked for origin:', origin);
       callback(new Error("Not allowed by CORS"));
     }
   },
