@@ -14,8 +14,12 @@ import {
   insertMaintenanceScheduleSchema
 } from "./shared/schema.js";
 import { z } from "zod";
+import cors from "cors";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Middleware pour les requêtes OPTIONS
+  app.options('*', cors());
+
   // Route d'accueil simple
   app.get('/', (req, res) => {
     res.send(homepage);
