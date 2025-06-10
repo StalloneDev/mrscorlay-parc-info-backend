@@ -20,10 +20,23 @@ app.use((req, res, next) => {
 });
 
 // Configuration de CORS
+const isProduction = process.env.NODE_ENV === "production";
+const allowedOrigins = isProduction
+  ? [
+      "https://mrs-parc-info.netlify.app",
+      "https://mrscorlay-parcinfo.vercel.app",
+      "https://mrscorlay-parc-info-frontend.vercel.app"
+    ]
+  : ["http://localhost:5173", "http://localhost:3000"];
+
 app.use(cors({
-  origin: process.env.NODE_ENV === "production" 
-    ? ["https://mrs-parc-info.netlify.app", "https://mrscorlay-parcinfo.vercel.app", "https://mrscorlay-parc-info-frontend.vercel.app"]
-    : ["http://localhost:5173", "http://localhost:3000"],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']

@@ -10,25 +10,36 @@ export function getSession() {
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
+    createTableIfMissing: true,
     ttl: sessionTtl,
     tableName: "sessions",
   });
+
+  const isProduction = process.env.NODE_ENV === "production";
+  const domain = isProduction ? ".vercel.app" : undefined;
+
   return session({
     secret: process.env.SESSION_SECRET || "parc-info-secret-key",
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    proxy: isProduction, // Trust the reverse proxy when setting secure cookies
     cookie: {
       httpOnly: true,
-      secure: false, // Set to true in production with HTTPS
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: sessionTtl,
+      domain,
+      path: "/",
     },
   });
 }
 
 export async function setupAuth(app: Express) {
-  app.set("trust proxy", 1);
+  // Trust first proxy in production
+  if (process.env.NODE_ENV === "production") {
+    app.set("trust proxy", 1);
+  }
   app.use(getSession());
 }
 
