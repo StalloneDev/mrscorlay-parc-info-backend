@@ -28,11 +28,13 @@ const allowedOrigins = isProduction
       "https://mrscorlay-parc-info-frontend.vercel.app",
       "https://mrscorlay-parc-info.vercel.app"
     ]
-  : ["http://localhost:5173", "http://localhost:3000"];
+  : ["http://localhost:5173"];
 
 app.use(cors({
   origin: (origin, callback) => {
+    console.log('CORS request from origin:', origin);
     if (!origin || allowedOrigins.includes(origin)) {
+      console.log('CORS allowed for origin:', origin);
       callback(null, true);
     } else {
       console.log('CORS blocked for origin:', origin);
@@ -43,6 +45,16 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
+
+// Middleware pour logger les requêtes
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`, {
+    cookies: req.cookies,
+    session: req.session,
+    headers: req.headers
+  });
+  next();
+});
 
 // Configuration de la session
 const PostgresqlStore = pgSession(session);

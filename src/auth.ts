@@ -23,7 +23,7 @@ export function getSession() {
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
-    proxy: isProduction, // Trust the reverse proxy when setting secure cookies
+    proxy: isProduction,
     cookie: {
       httpOnly: true,
       secure: isProduction,
