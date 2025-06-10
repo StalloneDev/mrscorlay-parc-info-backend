@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
 import { setupAuth, isAuthenticated, hasRole, hashPassword } from "./auth.js";
+import { homepage } from "./homepage.js";
 import { 
   insertUserSchema,
   insertEmployeeSchema,
@@ -15,6 +16,11 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Route d'accueil simple
+  app.get('/', (req, res) => {
+    res.send(homepage);
+  });
+
   // Auth middleware
   await setupAuth(app);
 

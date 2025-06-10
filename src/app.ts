@@ -10,7 +10,7 @@ const app = express();
 // Configuration de CORS
 app.use(cors({
   origin: process.env.NODE_ENV === "production" 
-    ? ["https://mrs-parc-info.netlify.app", "https://mrs-parc-info-frontend.netlify.app", "https://mrscorlay-parcinfo.vercel.app"]
+    ? ["https://mrs-parc-info.netlify.app", "https://mrscorlay-parcinfo.vercel.app"]
     : "http://localhost:5173",
   credentials: true
 }));

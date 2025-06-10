@@ -7,7 +7,7 @@
     "dev": "cross-env NODE_ENV=development tsx --experimental-specifier-resolution=node src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "vercel-build": "tsc && node dist/index.js",
+    "vercel-build": "tsc",
     "db:push": "drizzle-kit push",
     "db:migrate": "cross-env NODE_ENV=development tsx scripts/migrate.ts"
   },
