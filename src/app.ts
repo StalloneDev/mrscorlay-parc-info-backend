@@ -7,19 +7,7 @@ import { registerRoutes } from "./routes.js";
 
 const app = express();
 
-// Configuration des en-têtes de sécurité
-app.use((req, res, next) => {
-  res.setHeader(
-    'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
-  );
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  next();
-});
-
-// Configuration de CORS
+// Configuration de CORS - doit être le premier middleware
 const isProduction = process.env.NODE_ENV === "production";
 const allowedOrigins = isProduction
   ? [
@@ -33,6 +21,7 @@ const allowedOrigins = isProduction
 app.use(cors({
   origin: (origin, callback) => {
     console.log('CORS request from origin:', origin);
+    // En production, accepter les requêtes sans origin (comme les requêtes directes)
     if (!origin || allowedOrigins.includes(origin)) {
       console.log('CORS allowed for origin:', origin);
       callback(null, true);
@@ -43,18 +32,31 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cookie'],
   exposedHeaders: ['Set-Cookie'],
   preflightContinue: false,
   optionsSuccessStatus: 204
 }));
+
+// Configuration des en-têtes de sécurité
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+  );
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
 
 // Middleware pour logger les requêtes
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`, {
     cookies: req.cookies,
     session: req.session,
-    headers: req.headers
+    headers: req.headers,
+    body: req.body
   });
   next();
 });

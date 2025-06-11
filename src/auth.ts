@@ -16,7 +16,6 @@ export function getSession() {
   });
 
   const isProduction = process.env.NODE_ENV === "production";
-  const domain = isProduction ? ".vercel.app" : undefined;
 
   return session({
     secret: process.env.SESSION_SECRET || "parc-info-secret-key",
@@ -29,8 +28,8 @@ export function getSession() {
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
       maxAge: sessionTtl,
-      domain,
       path: "/",
+      domain: isProduction ? ".vercel.app" : undefined
     },
   });
 }
@@ -40,6 +39,19 @@ export async function setupAuth(app: Express) {
   if (process.env.NODE_ENV === "production") {
     app.set("trust proxy", 1);
   }
+  
+  // Ajouter des logs pour le débogage
+  app.use((req, res, next) => {
+    console.log('Auth middleware:', {
+      method: req.method,
+      path: req.path,
+      session: req.session,
+      cookies: req.cookies,
+      headers: req.headers
+    });
+    next();
+  });
+
   app.use(getSession());
 }
 
