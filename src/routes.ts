@@ -88,10 +88,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post('/api/auth/logout', (req, res) => {
+    console.log('Logout attempt:', { session: req.session });
+    
+    // Détruire la session
     req.session.destroy((err) => {
       if (err) {
+        console.error('Error destroying session:', err);
         return res.status(500).json({ message: "Erreur lors de la déconnexion" });
       }
+      
+      // Effacer le cookie de session
+      res.clearCookie('connect.sid', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        path: "/",
+        domain: process.env.NODE_ENV === "production" ? "mrscorlay-parc-info-backend.vercel.app" : undefined
+      });
+      
+      console.log('Logout successful');
       res.json({ message: "Déconnexion réussie" });
     });
   });
