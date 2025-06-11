@@ -2,7 +2,6 @@ import express from "express";
 import session from "express-session";
 import pgSession from "connect-pg-simple";
 import { pool } from "./db.js";
-import cors from "cors";
 import { registerRoutes } from "./routes.js";
 
 const app = express();
@@ -17,26 +16,6 @@ const allowedOrigins = isProduction
       "https://mrscorlay-parc-info.vercel.app"
     ]
   : ["http://localhost:5173"];
-
-app.use(cors({
-  origin: (origin, callback) => {
-    console.log('CORS request from origin:', origin);
-    // En production, accepter les requêtes sans origin (comme les requêtes directes)
-    if (!origin || allowedOrigins.includes(origin)) {
-      console.log('CORS allowed for origin:', origin);
-      callback(null, true);
-    } else {
-      console.log('CORS blocked for origin:', origin);
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cookie'],
-  exposedHeaders: ['Set-Cookie'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-}));
 
 // Configuration des en-têtes de sécurité
 app.use((req, res, next) => {

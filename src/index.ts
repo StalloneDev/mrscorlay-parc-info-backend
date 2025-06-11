@@ -1,7 +1,39 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes.js";
+import cors from "cors";
 
 const app = express();
+
+// CORS configuration - must be the first middleware
+const isProduction = process.env.NODE_ENV === "production";
+const allowedOrigins = isProduction
+  ? [
+      "https://mrs-parc-info.netlify.app",
+      "https://mrscorlay-parcinfo.vercel.app",
+      "https://mrscorlay-parc-info-frontend.vercel.app",
+      "https://mrscorlay-parc-info.vercel.app"
+    ]
+  : ["http://localhost:5173"];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    console.log('CORS request from origin:', origin);
+    // In production, accept requests without origin (like direct requests)
+    if (!origin || allowedOrigins.includes(origin)) {
+      console.log('CORS allowed for origin:', origin);
+      callback(null, true);
+    } else {
+      console.log('CORS blocked for origin:', origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cookie'],
+  exposedHeaders: ['Set-Cookie'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+}));
 
 // Middleware
 app.use(express.json());
