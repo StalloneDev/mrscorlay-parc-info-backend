@@ -10,10 +10,9 @@ const app = express();
 const isProduction = process.env.NODE_ENV === "production";
 const allowedOrigins = isProduction
   ? [
-      "https://mrs-parc-info.netlify.app",
-      "https://mrscorlay-parcinfo.vercel.app",
-      "https://mrscorlay-parc-info-frontend.vercel.app",
-      "https://mrscorlay-parc-info.vercel.app"
+      
+      "https://mrscorlay-parcinfo.vercel.app"
+      
     ]
   : ["http://localhost:5173"];
 

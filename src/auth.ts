@@ -29,7 +29,7 @@ export function getSession() {
       sameSite: isProduction ? "none" : "lax",
       maxAge: sessionTtl,
       path: "/",
-      domain: isProduction ? ".vercel.app" : undefined
+      domain: isProduction ? ".vercel.app" : undefined  
     },
   });
 }
