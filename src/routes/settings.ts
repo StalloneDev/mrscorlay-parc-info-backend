@@ -100,26 +100,23 @@ router.get("/export/:type", authenticateToken, async (req, res) => {
     // Créer un nouveau classeur Excel
     const workbook = XLSX.utils.book_new();
     
-    // Convertir les données en format Excel avec des options de formatage
-    const worksheet = XLSX.utils.json_to_sheet(data, { 
-      header: headers,
-      skipHeader: true,
-      dateNF: 'dd/mm/yyyy'
-    });
+    const worksheet = XLSX.utils.aoa_to_sheet([headers]);
+    worksheet['!cols'] = headers.map(() => ({ wch: 25 }));
 
-    // Ajouter les en-têtes manuellement
-    XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: 'A1' });
-
+    // Ajouter une ligne d'exemple vide
+    const emptyRow = headers.map(() => "");
+    XLSX.utils.sheet_add_aoa(worksheet, [emptyRow], { origin: -1 });
+    
     // Ajuster la largeur des colonnes
     const colWidths = headers.map(() => ({ wch: 25 }));
     worksheet['!cols'] = colWidths;
-
+    
     // Ajouter la feuille au classeur
     XLSX.utils.book_append_sheet(workbook, worksheet, type);
     
     // Générer le fichier Excel
-    const excelBuffer = XLSX.write(workbook, { 
-      type: "buffer", 
+    const excelBuffer = XLSX.write(workbook, {
+      type: "buffer",
       bookType: "xlsx",
       cellStyles: true
     });
