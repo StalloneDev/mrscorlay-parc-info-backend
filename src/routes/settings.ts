@@ -6,6 +6,7 @@ import { employees, equipment, inventory, licenses, maintenanceSchedules, ticket
 import { eq } from "drizzle-orm";
 import { authenticateToken } from "../middleware/auth.js";
 import { Request } from "express";
+import { users } from "../shared/schema.js";
 
 const router = Router();
 
@@ -40,6 +41,8 @@ router.get("/export/:type", authenticateToken, async (req, res) => {
     const employeeMap = new Map(employeeNames.map(emp => [emp.id, `${emp.name} ${emp.position}`]));
     const equipmentData = await db.select().from(equipment);
     const equipmentMap = new Map(equipmentData.map(eq => [eq.id, eq.model]));
+    const userData = await db.select().from(users);
+    const userMap = new Map(userData.map(user => [user.id, `${user.firstName} ${user.lastName} ${user.email}`]));
 
     switch (type) {
       case "employees":
@@ -52,13 +55,18 @@ router.get("/export/:type", authenticateToken, async (req, res) => {
         const equipmentData = await db.select().from(equipment);
         data = equipmentData.map(item => ({
           ...item,
-          "Assigné à": item.assignedTo ? employeeMap.get(item.assignedTo) || "Non assigné" : "Non assigné"
+          "Assigné à": item.assignedTo ? userMap.get(item.assignedTo) || "Non assigné" : "Non assigné"
         }));
         break;
 
       case "inventory":
-        headers = ["ID", "Nom", "Type", "Quantité", "Unité", "Seuil minimum", "Emplacement"];
-        data = await db.select().from(inventory);
+        headers = ["ID", "Équipement", "Emplacement", "Dernière vérification", "État", "Assigné à"];
+        const inventoryData = await db.select().from(inventory);
+        data = inventoryData.map(item => ({
+          ...item,
+          "Équipement": item.equipmentId ? equipmentMap.get(item.equipmentId) || "Inconnu" : "Inconnu",
+          "Assigné à": item.assignedTo ? userMap.get(item.assignedTo) || "Non assigné" : "Non assigné"
+        }));
         break;
 
       case "licenses":
@@ -69,15 +77,9 @@ router.get("/export/:type", authenticateToken, async (req, res) => {
       case "maintenanceSchedules":
         headers = ["ID", "Type", "Titre", "Description", "Date de début", "Date de fin", "Statut", "Notes", "Créé par"];
         const maintenanceData = await db.select().from(maintenanceSchedules);
-        // Récupérer les équipements associés
-        const maintenanceEquipmentData = await db.select().from(maintenanceEquipment);
-        const maintenanceEquipmentMap = new Map(
-          maintenanceEquipmentData.map(me => [me.maintenanceId, me.equipmentId])
-        );
-        
         data = maintenanceData.map(item => ({
           ...item,
-          "Créé par": item.createdBy ? employeeMap.get(item.createdBy) || "Inconnu" : "Inconnu"
+          "Créé par": item.createdBy ? userMap.get(item.createdBy) || "Inconnu" : "Inconnu"
         }));
         break;
 
@@ -86,8 +88,8 @@ router.get("/export/:type", authenticateToken, async (req, res) => {
         const ticketsData = await db.select().from(tickets);
         data = ticketsData.map(item => ({
           ...item,
-          "Créé par": item.createdBy ? employeeMap.get(item.createdBy) || "Inconnu" : "Inconnu",
-          "Assigné à": item.assignedTo ? employeeMap.get(item.assignedTo) || "Non assigné" : "Non assigné"
+          "Créé par": item.createdBy ? userMap.get(item.createdBy) || "Inconnu" : "Inconnu",
+          "Assigné à": item.assignedTo ? userMap.get(item.assignedTo) || "Non assigné" : "Non assigné"
         }));
         break;
 
@@ -101,12 +103,15 @@ router.get("/export/:type", authenticateToken, async (req, res) => {
     // Convertir les données en format Excel avec des options de formatage
     const worksheet = XLSX.utils.json_to_sheet(data, { 
       header: headers,
-      skipHeader: false,
+      skipHeader: true,
       dateNF: 'dd/mm/yyyy'
     });
 
+    // Ajouter les en-têtes manuellement
+    XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: 'A1' });
+
     // Ajuster la largeur des colonnes
-    const colWidths = headers.map(() => ({ wch: 20 }));
+    const colWidths = headers.map(() => ({ wch: 25 }));
     worksheet['!cols'] = colWidths;
 
     // Ajouter la feuille au classeur
@@ -268,6 +273,96 @@ router.post("/import", authenticateToken, upload.single("file"), async (req: Mul
   } catch (error) {
     console.error("Erreur lors de l'import:", error);
     res.status(500).json({ error: "Erreur lors de l'import des données" });
+  }
+});
+
+// Route pour générer un modèle Excel
+router.get("/template/:type", async (req, res) => {
+  const { type } = req.params;
+
+  try {
+    // Définir les en-têtes selon le type
+    let headers: string[] = [];
+    let data: any[] = [];
+
+    switch (type) {
+      case "equipment":
+        headers = ["ID", "Nom", "Type", "Numéro de série", "Statut", "Date d'acquisition", "Assigné à"];
+        data = [{
+          ID: "",
+          Nom: "",
+          Type: "ordinateur", // Valeur par défaut
+          "Numéro de série": "",
+          Statut: "en service", // Valeur par défaut
+          "Date d'acquisition": "",
+          "Assigné à": ""
+        }];
+        break;
+
+      case "inventory":
+        headers = ["ID", "Équipement", "Emplacement", "Dernière vérification", "État", "Assigné à"];
+        data = [{
+          ID: "",
+          Équipement: "",
+          Emplacement: "",
+          "Dernière vérification": "",
+          État: "fonctionnel", // Valeur par défaut
+          "Assigné à": ""
+        }];
+        break;
+
+      case "tickets":
+        headers = ["ID", "Titre", "Description", "Priorité", "Statut", "Créé par", "Assigné à", "Date de création"];
+        data = [{
+          ID: "",
+          Titre: "",
+          Description: "",
+          Priorité: "moyenne", // Valeur par défaut
+          Statut: "ouvert", // Valeur par défaut
+          "Créé par": "",
+          "Assigné à": "",
+          "Date de création": ""
+        }];
+        break;
+
+      default:
+        return res.status(400).json({ error: "Type de données invalide" });
+    }
+
+    // Créer un nouveau classeur Excel
+    const workbook = XLSX.utils.book_new();
+    
+    // Convertir les données en format Excel avec des options de formatage
+    const worksheet = XLSX.utils.json_to_sheet(data, { 
+      header: headers,
+      skipHeader: true,
+      dateNF: 'dd/mm/yyyy'
+    });
+
+    // Ajouter les en-têtes manuellement
+    XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: 'A1' });
+
+    // Ajuster la largeur des colonnes
+    const colWidths = headers.map(() => ({ wch: 25 }));
+    worksheet['!cols'] = colWidths;
+
+    // Ajouter la feuille au classeur
+    XLSX.utils.book_append_sheet(workbook, worksheet, type);
+    
+    // Générer le fichier Excel
+    const excelBuffer = XLSX.write(workbook, { 
+      type: "buffer", 
+      bookType: "xlsx",
+      cellStyles: true
+    });
+    
+    // Envoyer le fichier
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=${type}-template.xlsx`);
+    res.send(excelBuffer);
+  } catch (error) {
+    console.error("Erreur lors de la génération du modèle:", error);
+    res.status(500).json({ error: "Erreur lors de la génération du modèle" });
   }
 });
 
