@@ -73,6 +73,9 @@ router.get("/export/:type", authenticateToken, async (req, res) => {
     const workbook = XLSX.utils.book_new();
     
     // Convertir les données en format Excel
+    console.log("Données à exporter:", data);
+    console.log("En-têtes:", headers);
+    
     const worksheet = XLSX.utils.json_to_sheet(data, { header: headers });
     
     // Ajouter la feuille au classeur
@@ -80,6 +83,8 @@ router.get("/export/:type", authenticateToken, async (req, res) => {
     
     // Générer le fichier Excel
     const excelBuffer = XLSX.write(workbook, { type: "buffer", bookType: "xls" });
+    
+    console.log("Taille du buffer Excel:", excelBuffer.length);
     
     // Envoyer le fichier
     res.setHeader("Content-Type", "application/vnd.ms-excel");
