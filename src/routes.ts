@@ -15,6 +15,7 @@ import {
 } from "./shared/schema.js";
 import { z } from "zod";
 import cors from "cors";
+import settingsRoutes from "./routes/settings.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware pour les requêtes OPTIONS
@@ -715,6 +716,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to remove equipment from maintenance" });
     }
   });
+
+  // Routes de paramètres
+  app.use("/api/settings", settingsRoutes);
 
   const httpServer = createServer(app);
   return httpServer;
