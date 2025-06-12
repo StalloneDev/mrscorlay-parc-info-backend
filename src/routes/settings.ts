@@ -31,38 +31,64 @@ router.get("/export/:type", authenticateToken, async (req, res) => {
   const { type } = req.params;
 
   try {
-    let data;
-    let headers;
+    // Définir les en-têtes et les données selon le type
+    let headers: string[] = [];
+    let data: any[] = [];
+
+    // Récupérer les données de référence une seule fois
+    const employeeNames = await db.select().from(employees);
+    const employeeMap = new Map(employeeNames.map(emp => [emp.id, `${emp.name} ${emp.position}`]));
+    const equipmentData = await db.select().from(equipment);
+    const equipmentMap = new Map(equipmentData.map(eq => [eq.id, eq.model]));
 
     switch (type) {
       case "employees":
+        headers = ["ID", "Nom", "Prénom", "Email", "Téléphone", "Poste", "Département"];
         data = await db.select().from(employees);
-        headers = ["ID", "Nom", "Email", "Département", "Poste", "Date de création", "Date de mise à jour"];
         break;
 
       case "equipment":
-        data = await db.select().from(equipment);
-        headers = ["ID", "Type", "Modèle", "Numéro de série", "Date d'achat", "Statut", "Assigné à", "Date de création", "Date de mise à jour"];
+        headers = ["ID", "Nom", "Type", "Numéro de série", "Statut", "Date d'acquisition", "Assigné à"];
+        const equipmentData = await db.select().from(equipment);
+        data = equipmentData.map(item => ({
+          ...item,
+          "Assigné à": item.assignedTo ? employeeMap.get(item.assignedTo) || "Non assigné" : "Non assigné"
+        }));
         break;
 
       case "inventory":
+        headers = ["ID", "Nom", "Type", "Quantité", "Unité", "Seuil minimum", "Emplacement"];
         data = await db.select().from(inventory);
-        headers = ["ID", "ID Équipement", "Assigné à", "Localisation", "Dernière vérification", "État", "Date de création", "Date de mise à jour"];
         break;
 
       case "licenses":
+        headers = ["ID", "Nom", "Vendeur", "Type", "Clé de licence", "Utilisateurs max", "Utilisateurs actuels", "Coût"];
         data = await db.select().from(licenses);
-        headers = ["ID", "Nom", "Vendeur", "Type", "Clé de licence", "Utilisateurs max", "Utilisateurs actuels", "Coût", "Date d'expiration", "Date de création", "Date de mise à jour"];
         break;
 
-      case "planning":
-        data = await db.select().from(maintenanceSchedules);
-        headers = ["ID", "ID Équipement", "Titre", "Date planifiée", "Date de début", "Date de fin", "Type", "Description", "Assigné à", "Statut", "Date de création", "Date de mise à jour"];
+      case "maintenanceSchedules":
+        headers = ["ID", "Type", "Titre", "Description", "Date de début", "Date de fin", "Statut", "Notes", "Créé par"];
+        const maintenanceData = await db.select().from(maintenanceSchedules);
+        // Récupérer les équipements associés
+        const maintenanceEquipmentData = await db.select().from(maintenanceEquipment);
+        const maintenanceEquipmentMap = new Map(
+          maintenanceEquipmentData.map(me => [me.maintenanceId, me.equipmentId])
+        );
+        
+        data = maintenanceData.map(item => ({
+          ...item,
+          "Créé par": item.createdBy ? employeeMap.get(item.createdBy) || "Inconnu" : "Inconnu"
+        }));
         break;
 
       case "tickets":
-        data = await db.select().from(tickets);
-        headers = ["ID", "Titre", "Description", "Créé par", "Assigné à", "Statut", "Priorité", "Date de création", "Date de mise à jour"];
+        headers = ["ID", "Titre", "Description", "Priorité", "Statut", "Créé par", "Assigné à", "Date de création"];
+        const ticketsData = await db.select().from(tickets);
+        data = ticketsData.map(item => ({
+          ...item,
+          "Créé par": item.createdBy ? employeeMap.get(item.createdBy) || "Inconnu" : "Inconnu",
+          "Assigné à": item.assignedTo ? employeeMap.get(item.assignedTo) || "Non assigné" : "Non assigné"
+        }));
         break;
 
       default:
@@ -72,23 +98,30 @@ router.get("/export/:type", authenticateToken, async (req, res) => {
     // Créer un nouveau classeur Excel
     const workbook = XLSX.utils.book_new();
     
-    // Convertir les données en format Excel
-    console.log("Données à exporter:", data);
-    console.log("En-têtes:", headers);
-    
-    const worksheet = XLSX.utils.json_to_sheet(data, { header: headers });
-    
+    // Convertir les données en format Excel avec des options de formatage
+    const worksheet = XLSX.utils.json_to_sheet(data, { 
+      header: headers,
+      skipHeader: false,
+      dateNF: 'dd/mm/yyyy'
+    });
+
+    // Ajuster la largeur des colonnes
+    const colWidths = headers.map(() => ({ wch: 20 }));
+    worksheet['!cols'] = colWidths;
+
     // Ajouter la feuille au classeur
     XLSX.utils.book_append_sheet(workbook, worksheet, type);
     
     // Générer le fichier Excel
-    const excelBuffer = XLSX.write(workbook, { type: "buffer", bookType: "xls" });
-    
-    console.log("Taille du buffer Excel:", excelBuffer.length);
+    const excelBuffer = XLSX.write(workbook, { 
+      type: "buffer", 
+      bookType: "xlsx",
+      cellStyles: true
+    });
     
     // Envoyer le fichier
-    res.setHeader("Content-Type", "application/vnd.ms-excel");
-    res.setHeader("Content-Disposition", `attachment; filename=${type}-export-${new Date().toISOString()}.xls`);
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=${type}-export-${new Date().toISOString()}.xlsx`);
     res.send(excelBuffer);
 
   } catch (error) {
